@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/BSPOpenCLVisualizer.iml" filepath="$PROJECT_DIR$/.idea/modules/BSPOpenCLVisualizer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/BSPOpenCLVisualizer_main.iml" filepath="$PROJECT_DIR$/.idea/modules/BSPOpenCLVisualizer_main.iml" group="BSPOpenCLVisualizer" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/BSPOpenCLVisualizer_test.iml" filepath="$PROJECT_DIR$/.idea/modules/BSPOpenCLVisualizer_test.iml" group="BSPOpenCLVisualizer" />
     </modules>
   </component>
 </project>
