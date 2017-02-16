@@ -30,5 +30,8 @@ dependencies {
     compile 'org.jogamp.gluegen:gluegen-rt-main:2.3.2'
     compile 'org.jogamp.jogl:jogl-all-main:2.3.2'
     compile 'org.jogamp.jogl:jogl-all:2.3.2'
+    compile 'org.oiue.services:org.oiue.service.log4j:1.0.0'
+    compile 'javax.vecmath:vecmath:1.5.2'
+    compile 'commons-io:commons-io:2.4'
     compile fileTree(dir: 'libs/', includes: ['*.jar'])
 }

@@ -2,9 +2,9 @@ package visualizer;
 
 
 import com.jogamp.opengl.*;
-import eu.mihosoft.vrl.v3d.CSG;
-import eu.mihosoft.vrl.v3d.Polygon;
-import eu.mihosoft.vrl.v3d.Vector3d;
+import visualizer.engine.CSG;
+import visualizer.engine.Polygon;
+import visualizer.engine.Vector3d;
 
 import java.nio.FloatBuffer;
 import java.util.List;
@@ -37,11 +37,11 @@ public class GLRenderer implements GLEventListener {
         gl.glClearColor(1.0f, 1.0f, 1.0f, 0f);
         gl.glShadeModel(GL2.GL_SMOOTH);
         gl.glClearDepth(1.0f);
-        gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, FloatBuffer.wrap(new float[]{1f, 1f, 1f, 0}));
+        /*gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, FloatBuffer.wrap(new float[]{1f, 1f, 1f, 0}));
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, FloatBuffer.wrap(new float[]{1.0f, 1.0f, 1.0f, 1.0f}));
         gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, FloatBuffer.wrap(new float[]{50f}));
         gl.glEnable(gl.GL_LIGHTING);
-        gl.glEnable(gl.GL_LIGHT0);
+        gl.glEnable(gl.GL_LIGHT0);*/
         gl.glEnable(GL.GL_DEPTH_TEST);
         gl.glDepthFunc(GL.GL_LEQUAL);
         gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_NICEST);
@@ -106,13 +106,6 @@ public class GLRenderer implements GLEventListener {
             List<Polygon> polygons = scene.getPolygons();
             Vector3d maxBounds = scene.getBounds().getBounds();
             double bound = Stream.of(maxBounds.x, maxBounds.y, maxBounds.z).max(Double::compareTo).get();
-            polygons.forEach(polygon -> polygon.vertices.forEach(vertex ->
-                    gl.glVertex3d(vertex.pos.x / bound, vertex.pos.y / bound, vertex.pos.z / bound)
-            ));
-            gl.glEnd();
-
-            gl.glColor3d(0, 0, 0);
-            gl.glBegin(GL.GL_POINTS);
             polygons.forEach(polygon -> polygon.vertices.forEach(vertex ->
                     gl.glVertex3d(vertex.pos.x / bound, vertex.pos.y / bound, vertex.pos.z / bound)
             ));

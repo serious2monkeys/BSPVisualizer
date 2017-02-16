@@ -2,9 +2,9 @@ package visualizer;
 
 import com.jogamp.opengl.awt.GLJPanel;
 import com.jogamp.opengl.util.FPSAnimator;
-import eu.mihosoft.vrl.v3d.CSG;
-import eu.mihosoft.vrl.v3d.STL;
-import eu.mihosoft.vrl.v3d.Vector3d;
+import visualizer.engine.CSG;
+import visualizer.engine.STL;
+import visualizer.engine.Vector3d;
 
 import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
