@@ -38,6 +38,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static visualizer.engine.solid.PlaneUtils.choosePlane;
+
 /**
  * Содержит узел BSP - дерева
  */
@@ -143,7 +145,7 @@ public class Node {
         List<Polygon> backP = new ArrayList<>();
 
         for (Polygon polygon : polygons) {
-            this.plane.splitPolygon(polygon, frontP, backP, frontP, backP);
+            this.plane.splitPolygon(polygon, frontP, backP);
         }
         if (this.front != null) {
             frontP = this.front.clipPolygons(frontP);
@@ -156,88 +158,6 @@ public class Node {
 
         frontP.addAll(backP);
         return frontP;
-    }
-
-    /**
-     * Проверка на пересечение сцены отрезком
-     *
-     * @param segment
-     * @return
-     */
-    public boolean checkIntersection(LineSegment segment) {
-        if (back == null || front == null) {
-            return true;
-        }
-        final int COPLANAR = 0;
-        final int FRONT = 1;
-        final int BACK = 2;
-        final int SPANNING = 3; // == some in the FRONT + some in the BACK
-
-        // Classify each point as well as the entire polygon into one of the
-        // above four classes.
-        int polygonType = 0;
-        List<Integer> types = new ArrayList<>(2);
-        for (Vector3d point: segment.getPoints()) {
-            double t = this.plane.normal.dot(point) - this.plane.dist;
-            int type = (t < -Plane.EPSILON) ? BACK : (t > Plane.EPSILON) ? FRONT : COPLANAR;
-            polygonType |= type;
-            types.add(type);
-        }
-
-        //System.out.println("> switching");
-        // Put the polygon in the correct list, splitting it when necessary.
-        switch (polygonType) {
-            case COPLANAR:
-                //System.out.println(" -> coplanar");
-                return true;
-            case FRONT:
-                //System.out.println(" -> front");
-                return front.checkIntersection(segment);
-            case BACK:
-                //System.out.println(" -> back");
-                return back.checkIntersection(segment);
-            case SPANNING:
-                Vector3d inters = findIntersection(segment, plane);
-
-                LineSegment first =  types.get(0) == FRONT
-                        ? new LineSegment(segment.getBegin(), inters)
-                        : new LineSegment(inters, segment.getEnd());
-
-                LineSegment second = types.get(1) == BACK
-                        ? new LineSegment(inters, segment.getEnd())
-                        : new LineSegment(segment.getBegin(), inters);
-
-                if (front.plane.dist < back.plane.dist) {
-                    boolean test = front.checkIntersection(first);
-                    if (test) {
-                        return true;
-                    }
-                    return back.checkIntersection(second);
-                } else {
-                    boolean test = back.checkIntersection(second);
-                    if (test) {
-                        return true;
-                    }
-                    return front.checkIntersection(first);
-                }
-        }
-        return false;
-    }
-
-    /**
-     * Нахождение точки пересечения прямой с плоскостью
-     * @param line
-     * @param plane
-     * @return
-     */
-    private Vector3d findIntersection(LineSegment line, Plane plane) {
-        double m = line.getEnd().x - line.getBegin().x;
-        double n = line.getEnd().y - line.getBegin().y;
-        double p = line.getEnd().z - line.getBegin().z;
-
-        double t = (plane.normal.x * line.getBegin().x + plane.normal.y * line.getBegin().y + plane.normal.z * line.getBegin().z - plane.dist)/
-                (plane.normal.x * m + plane.normal.y*n + plane.normal.z * p)*(-1);
-        return Vector3d.xyz(line.getBegin().x + m*t, line.getBegin().y + n*t, line.getBegin().z + p*t);
     }
 
     /**
@@ -275,17 +195,17 @@ public class Node {
 
         if (polygons.isEmpty()) return;
 
-        List<Polygon> faces = polygons.stream().sorted((first, second) ->
-                first.plane.dist > second.plane.dist ? -1 : 1).collect(Collectors.toList());
-
         if (this.plane == null) {
-            this.plane = faces.get(0).plane.clone();
+            Polygon chosen = choosePlane(polygons);
+            this.polygons.add(chosen);
+            this.plane = chosen.plane.clone();
+            polygons.remove(chosen);
         }
 
         List<Polygon> frontP = new ArrayList<>();
         List<Polygon> backP = new ArrayList<>();
 
-        faces.stream().forEach((polygon) -> this.plane.splitPolygon(polygon, this.polygons, this.polygons, frontP, backP));
+        polygons.stream().forEach((polygon) -> this.plane.splitPolygon(polygon, frontP, backP));
 
         if (frontP.size() > 0) {
             if (this.front == null) {

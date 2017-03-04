@@ -1,26 +1,28 @@
-package visualizer.engine;
+package visualizer.engine.solid;
+
+import visualizer.engine.Vector3d;
 
 /**
  * Created by Anton Doronin on 29.01.2017.
  * Представление отрезка прямой в трёхмерном пространстве
  */
 public class LineSegment {
-    private Vector3d[] points = new Vector3d[2];
+    private Vector3d begin, end;
 
     public LineSegment(Vector3d begin, Vector3d end) {
-        points[0] = begin;
-        points[1] = end;
+        this.begin = begin;
+        this.end = end;
     }
 
     public Vector3d getBegin() {
-        return points[0];
+        return begin;
     }
 
     public Vector3d getEnd() {
-        return points[1];
+        return end;
     }
 
     public Vector3d[] getPoints() {
-        return points;
+        return new Vector3d[] {begin, end};
     }
 }
