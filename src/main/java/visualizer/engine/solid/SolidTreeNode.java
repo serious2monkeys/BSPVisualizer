@@ -28,6 +28,18 @@ public class SolidTreeNode {
         }
     }
 
+    public SolidTreeNode getFront() {
+        return front;
+    }
+
+    public SolidTreeNode getBack() {
+        return back;
+    }
+
+    public Plane getPlane() {
+        return plane;
+    }
+
     public SolidTreeNode() {
 
     }
@@ -98,12 +110,7 @@ public class SolidTreeNode {
             // Put the polygon in the correct list, splitting it when necessary.
             switch (polygonType) {
                 case COPLANAR:
-                    //System.out.println(" -> coplanar");
-                    /*if (front.plane  == null && back.plane == null) {
-                        return null;
-                    }*/
-                   // return getNearestChild().checkIntersection(segment);
-                    return null;
+                    return segment.getBegin();
                 case FRONT:
                     //System.out.println(" -> front");
                     return front.checkIntersection(segment);
@@ -130,19 +137,6 @@ public class SolidTreeNode {
                     return nearest == front
                             ? back.checkIntersection(backPart)
                             : front.checkIntersection(frontPart);
-                    /*if (front.plane.dist < back.plane.dist) {
-                        Vector3d test = front.checkIntersection(first);
-                        if (test != null) {
-                            return test;
-                        }
-                        return back.checkIntersection(second);
-                    } else {
-                        Vector3d test = back.checkIntersection(second);
-                        if (test != null) {
-                            return test;
-                        }
-                        return front.checkIntersection(first);
-                    }*/
             }
             return null;
         }

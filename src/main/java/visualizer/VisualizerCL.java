@@ -8,6 +8,8 @@ import visualizer.engine.STL;
 import visualizer.engine.Vector3d;
 import visualizer.engine.solid.LineSegment;
 import visualizer.engine.solid.SolidTreeNode;
+import visualizer.engine.transform.TreeConvertedInstance;
+import visualizer.openCL.CLInterface;
 
 import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
@@ -16,6 +18,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -23,10 +26,6 @@ import java.util.stream.Stream;
 
 import static visualizer.VisualizerCL.VisualizerMode.POLYGONAL;
 import static visualizer.VisualizerCL.VisualizerMode.REYCAST_JAVA;
-/*
- * Created by JFormDesigner on Sun Nov 27 18:32:31 YEKT 2016
- */
-
 
 /**
  * @author unknown
@@ -36,11 +35,13 @@ public class VisualizerCL extends JFrame {
     private FPSAnimator animator;
     private GLRenderer renderer;
     private CSG scene;
+    private double[] begins, ends;
     private SolidTreeNode sceneTree;
     private List<LineSegment> segments;
     private VisualizerMode visualizerMode = POLYGONAL;
     private int branchSize = 4;
     double maxDimension = 1.0;
+    List<Vector3d> result = new ArrayList<>();
 
     private boolean mousePressed = false;
     private Vector2d prevMousePos = new Vector2d(0.0, 0.0);
@@ -72,10 +73,7 @@ public class VisualizerCL extends JFrame {
                         renderer = new GLRenderer(scene);
                         break;
                     case REYCAST_JAVA:
-                        List<Vector3d> points = segments.stream().map(sceneTree::checkIntersection)
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList());
-                        renderer = new GLRenderer(maxDimension, points);
+                        renderer = new GLRenderer(maxDimension, result);
                 }
                 renderer.setRotate(rotVector);
                 renderer.init(panel2);
@@ -94,13 +92,6 @@ public class VisualizerCL extends JFrame {
         REYCAST_JAVA
     }
 
-  /*
-    // Generated using JFormDesigner Evaluation license - Anton Doronin
-    private JPanel panel1;
-    private JButton button1;
-    private GLJPanel panel2;
-*/
-
     public VisualizerCL() {
         initComponents();
         this.addWindowListener(new WindowAdapter() {
@@ -114,59 +105,7 @@ public class VisualizerCL extends JFrame {
         });
     }
 
-/*    private void initComponents() {
-        panel1 = new JPanel();
-        button1 = new JButton();
-        panel2 = new GLJPanel();
-        animator = new FPSAnimator(panel2, 60, true);
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        //======== this ========
-        Container contentPane = getContentPane();
-        contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.LINE_AXIS));
-
-        //======== panel1 ========
-        {
-
-            // JFormDesigner evaluation mark
-            panel1.setBorder(new javax.swing.border.CompoundBorder(
-                    new javax.swing.border.TitledBorder(new javax.swing.border.EmptyBorder(0, 0, 0, 0),
-                            "JFormDesigner Evaluation", javax.swing.border.TitledBorder.CENTER,
-                            javax.swing.border.TitledBorder.BOTTOM, new java.awt.Font("Dialog", java.awt.Font.BOLD, 12),
-                            java.awt.Color.red), panel1.getBorder()));
-            panel1.addPropertyChangeListener(e -> {
-                if ("border".equals(e.getPropertyName())) throw new RuntimeException();
-            });
-
-            panel1.setLayout(null);
-
-            //---- button1 ----
-            button1.setText("text");
-            panel1.add(button1);
-            button1.setBounds(5, 10, 95, button1.getPreferredSize().height);
-            panel1.add(panel2);
-            panel2.setBounds(110, 10, 590, 270);
-
-            { // compute preferred size
-                Dimension preferredSize = new Dimension();
-                for (int i = 0; i < panel1.getComponentCount(); i++) {
-                    Rectangle bounds = panel1.getComponent(i).getBounds();
-                    preferredSize.width = Math.max(bounds.x + bounds.width, preferredSize.width);
-                    preferredSize.height = Math.max(bounds.y + bounds.height, preferredSize.height);
-                }
-                Insets insets = panel1.getInsets();
-                preferredSize.width += insets.right;
-                preferredSize.height += insets.bottom;
-                panel1.setMinimumSize(preferredSize);
-                panel1.setPreferredSize(preferredSize);
-            }
-        }
-        contentPane.add(panel1);
-        pack();
-        setLocationRelativeTo(getOwner());
-    }*/
-
-    private void menuItem1ActionPerformed(ActionEvent e) throws IOException {
+    private void menuItem1ActionPerformed(ActionEvent e) throws IOException, InterruptedException {
         JFileChooser fileChooser = new JFileChooser("/home/terravitus/git/projects/BSPOpenCLVisualizer" +
                 "/src/main/resources");
         scene = null;
@@ -185,22 +124,63 @@ public class VisualizerCL extends JFrame {
                     Long before = System.nanoTime();
                     sceneTree = new SolidTreeNode(scene.getPolygons());
                     System.out.println("TREE BUILDING " + (System.nanoTime() - before)/1000000);
-                    /*Map<LineSegment, Vector3d> intersections = segments.parallelStream()
-                            .map(lineSegment -> new DefaultMapEntry<>(lineSegment, solidTree.checkIntersection(lineSegment)))
-                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                    intersections.size();*/
                     before = System.nanoTime();
+                    TreeConvertedInstance instance = new TreeConvertedInstance(sceneTree);
+                    System.out.println("Converting " + (System.nanoTime() - before)/1000000);
                     segments = makeSimpleSplit(scene);
+
+                    before = System.nanoTime();
                     List<Vector3d> points = segments.stream().map(sceneTree::checkIntersection)
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
-                    System.out.println("INTERSECTING " + (System.nanoTime() - before)/1000000);
+
+                    System.out.println("INTERSECTING OBJECT " + (System.nanoTime() - before)/1000000);
+                    before = System.nanoTime();
+                    List<Vector3d> alternative = segments.stream().map(instance::checkIntersection)
+                            .filter(Objects::nonNull).collect(Collectors.toList());
+                    System.out.println("INTERSECTING ARRAYS " + (System.nanoTime() - before)/1000000);
+
+                    begins = segments.stream().map(segment -> {
+                        List<Double> coords = new ArrayList<>();
+                        Collections.addAll(coords, new Double[]{segment.getBegin().x, segment.getBegin().y, segment.getBegin().z});
+                        return coords;
+                    }).reduce(new ArrayList<>(), (doubles, doubles2) -> {
+                        doubles.addAll(doubles2);
+                        return doubles;
+                    }).stream().mapToDouble(Double::doubleValue).toArray();
+                    ends = segments.stream().map(segment -> {
+                        List<Double> coords = new ArrayList<>();
+                        Collections.addAll(coords, new Double[]{segment.getEnd().x, segment.getEnd().y, segment.getEnd().z});
+                        return coords;
+                    }).reduce(new ArrayList<>(), (doubles, doubles2) -> {
+                        doubles.addAll(doubles2);
+                        return doubles;
+                    }).stream().mapToDouble(Double::doubleValue).toArray();
+//-------------------------------------------------------------
+                    System.out.println("Count of nodes " + instance.countCells());
+                    CLInterface wizard = new CLInterface(instance);
+                    List<Vector3d> parallelMagic = wizard.checkIntersection(begins, ends);
+                    before = System.nanoTime();
+                    List<Vector3d> arraySegments = new ArrayList<>();
+                    for(int i =0; i<begins.length; i+=3) {
+                        double[] begin = new double[] {begins[i], begins[i+1], begins[i+2]};
+                        double[] end = new double[] {ends[i], ends[i+1], ends[i+2]};
+                        double[] intersection = instance.checkIntersection(begin, end);
+                        if (intersection != null) {
+                            arraySegments.add(new Vector3d(intersection[0], intersection[1], intersection[2]));
+                        }
+                    }
+                    System.out.println("ARRAYS PROCESSING " + (System.nanoTime() - before)/1000000);
+
+
                     Bounds bounds = scene.getBounds();
                     maxDimension = Stream.of(bounds.getMax().x, bounds.getMax().y, bounds.getMax().z,
                             bounds.getMin().x, bounds.getMin().y, bounds.getMin().z)
                             .map(Math::abs)
                             .max(Double::compareTo).get();
+                    result = parallelMagic;
                     renderer = new GLRenderer(maxDimension, points);
+
             }
             renderer.init(panel2);
             panel2.addGLEventListener(renderer);
@@ -250,6 +230,8 @@ public class VisualizerCL extends JFrame {
                         menuItem1ActionPerformed(e);
                     } catch (IOException e1) {
                         e1.printStackTrace();
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
                     }
                 });
                 menu1.add(menuItem1);
@@ -284,7 +266,7 @@ public class VisualizerCL extends JFrame {
 
             panel1.setLayout(null);
             panel1.add(panel2);
-            panel2.setBounds(0, 0, 500, 500);
+            panel2.setBounds(0, 0, 1000, 1000);
 
             { // compute preferred size
                 Dimension preferredSize = new Dimension();
@@ -339,10 +321,10 @@ public class VisualizerCL extends JFrame {
                 .map(Math::abs)
                 .max(Double::compareTo).get();
         int box = width > height ? height : width;
-        double step = (maxDimension / (box)) * 20;
-        for (int pos = 0; pos < box/10; pos++) {
+        double step = (maxDimension / (box)) * 2;
+        for (int pos = 0; pos < box; pos++) {
             double yCord = -maxDimension + pos * step;
-            for (int i = 0; i < box/10; i++) {
+            for (int i = 0; i < box; i++) {
                 Vector3d begin = new Vector3d(-maxDimension + i * step, yCord, maxDimension);
                 Vector3d end = begin.clone();
                 end.z = -maxDimension;
