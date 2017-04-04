@@ -2,9 +2,10 @@ package visualizer;
 
 
 import com.jogamp.opengl.*;
-import eu.mihosoft.vrl.v3d.CSG;
-import eu.mihosoft.vrl.v3d.Polygon;
-import eu.mihosoft.vrl.v3d.Vector3d;
+import visualizer.engine.Bounds;
+import visualizer.engine.CSG;
+import visualizer.engine.Polygon;
+import visualizer.engine.Vector3d;
 
 import java.nio.FloatBuffer;
 import java.util.List;
@@ -16,12 +17,21 @@ public class GLRenderer implements GLEventListener {
 
     private Vector3d rotate = new Vector3d(0, 0, 0);
 
+    private List<Vector3d> points;
+
+    double bounds = 1;
+
     public GLRenderer() {
         scene = null;
     }
 
     public GLRenderer(CSG scene) {
         this.scene = scene;
+    }
+
+    public GLRenderer(double bounds, List<Vector3d> points) {
+        this.points = points;
+        this.bounds = bounds;
     }
 
     public void setRotate(Vector3d rotate) {
@@ -32,16 +42,9 @@ public class GLRenderer implements GLEventListener {
     public void init(GLAutoDrawable drawable) {
         GL2 gl = drawable.getGL().getGL2();
         System.err.println("INIT GL IS: " + gl.getClass().getName());
-        // Enable VSync
-        //gl.setSwapInterval(1);
         gl.glClearColor(1.0f, 1.0f, 1.0f, 0f);
         gl.glShadeModel(GL2.GL_SMOOTH);
         gl.glClearDepth(1.0f);
-        gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, FloatBuffer.wrap(new float[]{1f, 1f, 1f, 0}));
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SPECULAR, FloatBuffer.wrap(new float[]{1.0f, 1.0f, 1.0f, 1.0f}));
-        gl.glMaterialfv(gl.GL_FRONT, gl.GL_SHININESS, FloatBuffer.wrap(new float[]{50f}));
-        gl.glEnable(gl.GL_LIGHTING);
-        gl.glEnable(gl.GL_LIGHT0);
         gl.glEnable(GL.GL_DEPTH_TEST);
         gl.glDepthFunc(GL.GL_LEQUAL);
         gl.glHint(GL2.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_NICEST);
@@ -104,37 +107,23 @@ public class GLRenderer implements GLEventListener {
             gl.glColor3d(1, 0, 0);
             gl.glLineWidth(1.5f);
             List<Polygon> polygons = scene.getPolygons();
-            Vector3d maxBounds = scene.getBounds().getBounds();
-            double bound = Stream.of(maxBounds.x, maxBounds.y, maxBounds.z).max(Double::compareTo).get();
+            Bounds bounds = scene.getBounds();
+            double sceneBound = Stream.of(bounds.getMax().x, bounds.getMax().y, bounds.getMax().z,
+                    bounds.getMin().x, bounds.getMin().y, bounds.getMin().z).map(Math::abs).max(Double::compareTo).get() * 1.5;
             polygons.forEach(polygon -> polygon.vertices.forEach(vertex ->
-                    gl.glVertex3d(vertex.pos.x / bound, vertex.pos.y / bound, vertex.pos.z / bound)
-            ));
-            gl.glEnd();
-
-            gl.glColor3d(0, 0, 0);
-            gl.glBegin(GL.GL_POINTS);
-            polygons.forEach(polygon -> polygon.vertices.forEach(vertex ->
-                    gl.glVertex3d(vertex.pos.x / bound, vertex.pos.y / bound, vertex.pos.z / bound)
+                    gl.glVertex3d(vertex.pos.x / sceneBound, vertex.pos.y / sceneBound, vertex.pos.z / sceneBound)
             ));
             gl.glEnd();
         }
-        /*
-         gl.glEnable(GL.GL_LINE_SMOOTH);
-            gl.glShadeModel(GL.GL_SMOOTH);
-            gl.glLineWidth(1.5f);
-            gl.glBegin(GL.GL_LINES);
-            gl.glColor3d(1,0,0);
-            gl.glVertex3d(0,0,0);
-            gl.glVertex3d(5, 0, 0);
-            gl.glColor3d(0, 5, 0);
-            gl.glVertex3d(0, 0, 0);
-            gl.glVertex3d(0, 5, 0);
-            gl.glColor3d(0, 0, 5);
-            gl.glVertex3d(0, 0, 0);
-            gl.glVertex3d(0, 0, 5);
+
+        if (points != null && !points.isEmpty()) {
+            gl.glBegin(GL.GL_POINTS);
+            gl.glColor3d(0,0,1);
+            gl.glPointSize(1f);
+            points.forEach(point -> gl.glVertex3d(point.x/ (bounds*1.5), point.y/(bounds*1.5), point.z/(bounds*1.5)));
             gl.glEnd();
-        gl.glPushMatrix();*/
-        gl.glBegin(GL.GL_LINES);
+        }
+                gl.glBegin(GL.GL_LINES);
         gl.glColor3d(1, 0, 0);
         gl.glVertex2d(0, 0);
         gl.glVertex2d(1, 0);

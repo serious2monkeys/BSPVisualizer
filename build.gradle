@@ -7,7 +7,12 @@ plugins {
 }
 
 repositories {
+    maven {
+        url "https://plugins.gradle.org/m2/"
+    }
     mavenCentral()
+    jcenter()
+    mavenLocal()
 
     //    maven {
     //        url 'https://oss.sonatype.org/content/repositories/snapshots/'
@@ -15,7 +20,7 @@ repositories {
 }
 
 task wrapper(type: Wrapper, description: 'Creates and deploys the Gradle wrapper to the current directory.') {
-    gradleVersion = '3.1'
+    gradleVersion = '3.0'
 }
 
 sourceCompatibility = '1.8'
@@ -30,5 +35,12 @@ dependencies {
     compile 'org.jogamp.gluegen:gluegen-rt-main:2.3.2'
     compile 'org.jogamp.jogl:jogl-all-main:2.3.2'
     compile 'org.jogamp.jogl:jogl-all:2.3.2'
+    compile 'org.oiue.services:org.oiue.service.log4j:1.0.0'
+    compile 'javax.vecmath:vecmath:1.5.2'
+    compile 'com.nativelibs4java:opencl4java:1.0.0-RC4'
+    compile 'com.nativelibs4java:javacl:1.0.0-RC4'
+    compile 'com.nativelibs4java:javacl-core:1.0.0-RC4'
+    compile 'com.nativelibs4java:maven-javacl-plugin:1.0.0-RC4'
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
     compile fileTree(dir: 'libs/', includes: ['*.jar'])
 }
