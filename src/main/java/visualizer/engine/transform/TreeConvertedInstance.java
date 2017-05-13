@@ -7,7 +7,9 @@ import visualizer.engine.solid.SolidTreeNode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static visualizer.engine.Plane.*;
 
@@ -23,6 +25,11 @@ public class TreeConvertedInstance {
     private long cells = 0;
     private int[] nodesArray;
     private double[] planesArray;
+    private double maxDimension;
+
+    public double getMaxDimension() {
+        return maxDimension;
+    }
 
     public long countCells() {
         return cells;
@@ -71,6 +78,9 @@ public class TreeConvertedInstance {
             return;
         }
         Plane plane = node.getPlane();
+        maxDimension = Double.max(maxDimension,
+                Stream.of(plane.normal.x, plane.normal.y, plane.normal.z, plane.dist)
+                        .map(Math::abs).max(Comparator.naturalOrder()).get());
         planeValues.addAll(Arrays.asList(plane.normal.x, plane.normal.y, plane.normal.z, plane.dist));
     }
 

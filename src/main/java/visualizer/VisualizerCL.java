@@ -2,10 +2,8 @@ package visualizer;
 
 import com.jogamp.opengl.awt.GLJPanel;
 import com.jogamp.opengl.util.FPSAnimator;
-import visualizer.engine.Bounds;
-import visualizer.engine.CSG;
-import visualizer.engine.STL;
-import visualizer.engine.Vector3d;
+import visualizer.benchmark.TreeSampler;
+import visualizer.engine.*;
 import visualizer.engine.solid.LineSegment;
 import visualizer.engine.solid.SolidTreeNode;
 import visualizer.engine.transform.TreeConvertedInstance;
@@ -179,7 +177,7 @@ public class VisualizerCL extends JFrame {
                             .map(Math::abs)
                             .max(Double::compareTo).get();
                     result = parallelMagic;
-                    renderer = new GLRenderer(maxDimension, points);
+                    renderer = new GLRenderer(maxDimension, parallelMagic);
 
             }
             renderer.init(panel2);
@@ -198,6 +196,8 @@ public class VisualizerCL extends JFrame {
         menu2 = new JMenu();
         menuItem2 = new JMenuItem();
         menuItem3 = new JMenuItem();
+        menuItem4 = new JMenuItem();
+        menuItem5 = new JMenuItem();
         panel1 = new JPanel();
         panel2 = new GLJPanel();
         renderer = new GLRenderer();
@@ -251,6 +251,31 @@ public class VisualizerCL extends JFrame {
                 menuItem3.setText("\u041f\u0430\u0440\u0430\u043b\u043b\u0435\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u0439\u043a\u0430\u0441\u0442\u0438\u043d\u0433");
                 menuItem3.addActionListener(e -> visualizerMode = REYCAST_JAVA);
                 menu2.add(menuItem3);
+
+                menuItem4.setText("Test Coherence");
+                menuItem4.addActionListener(e -> {
+                    try {
+                        testCoherenceSelected();
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                });
+                menu2.add(menuItem4);
+
+                menuItem5.setText("Test balanced");
+                menuItem5.addActionListener(e -> {
+                    try {
+                        testBalanced();
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                });
+
+                menu2.add(menuItem5);
             }
             menuBar1.add(menu2);
         }
@@ -266,7 +291,7 @@ public class VisualizerCL extends JFrame {
 
             panel1.setLayout(null);
             panel1.add(panel2);
-            panel2.setBounds(0, 0, 1000, 1000);
+            panel2.setBounds(0, 0, 500, 500);
 
             { // compute preferred size
                 Dimension preferredSize = new Dimension();
@@ -285,6 +310,96 @@ public class VisualizerCL extends JFrame {
         contentPane.add(panel1);
         pack();
         setLocationRelativeTo(getOwner());
+    }
+
+    private void testBalanced() throws IOException, InterruptedException {
+        sceneTree = TreeSampler.getBalancedTree();
+        TreeConvertedInstance instance = new TreeConvertedInstance(sceneTree);
+        scene = new Cube(2).toCSG();
+        segments = makeSimpleSplit(scene);
+        begins = segments.stream().map(segment -> {
+            List<Double> coords = new ArrayList<>();
+            Collections.addAll(coords, new Double[]{segment.getBegin().x, segment.getBegin().y, segment.getBegin().z});
+            return coords;
+        }).reduce(new ArrayList<>(), (doubles, doubles2) -> {
+            doubles.addAll(doubles2);
+            return doubles;
+        }).stream().mapToDouble(Double::doubleValue).toArray();
+        ends = segments.stream().map(segment -> {
+            List<Double> coords = new ArrayList<>();
+            Collections.addAll(coords, new Double[]{segment.getEnd().x, segment.getEnd().y, segment.getEnd().z});
+            return coords;
+        }).reduce(new ArrayList<>(), (doubles, doubles2) -> {
+            doubles.addAll(doubles2);
+            return doubles;
+        }).stream().mapToDouble(Double::doubleValue).toArray();
+//-------------------------------------------------------------
+        System.out.println("Count of nodes " + instance.countCells());
+        CLInterface wizard = new CLInterface(instance);
+        List<Vector3d> parallelMagic = wizard.checkIntersection(begins, ends);
+        Bounds bounds = scene.getBounds();
+        maxDimension = Stream.of(bounds.getMax().x, bounds.getMax().y, bounds.getMax().z,
+                bounds.getMin().x, bounds.getMin().y, bounds.getMin().z)
+                .map(Math::abs)
+                .max(Double::compareTo).get();
+        result = parallelMagic;
+        renderer = new GLRenderer(maxDimension, parallelMagic);
+        renderer.init(panel2);
+        panel2.addGLEventListener(renderer);
+        panel2.setAnimator(animator);
+        animator.start();
+
+
+        /***/
+        Long before = System.nanoTime();
+        List<Vector3d> alternative = segments.parallelStream().map(instance::checkIntersection)
+                .filter(Objects::nonNull).collect(Collectors.toList());
+        System.out.println("INTERSECTING ARRAYS " + (System.nanoTime() - before)/1000000);
+    }
+
+    private void testCoherenceSelected() throws IOException, InterruptedException {
+        sceneTree = TreeSampler.getCoherentTree();
+        TreeConvertedInstance instance = new TreeConvertedInstance(sceneTree);
+        scene = new Cube(2048.0).toCSG();
+        segments = makeSimpleSplit(scene);
+        begins = segments.stream().map(segment -> {
+            List<Double> coords = new ArrayList<>();
+            Collections.addAll(coords, new Double[]{segment.getBegin().x, segment.getBegin().y, segment.getBegin().z});
+            return coords;
+        }).reduce(new ArrayList<>(), (doubles, doubles2) -> {
+            doubles.addAll(doubles2);
+            return doubles;
+        }).stream().mapToDouble(Double::doubleValue).toArray();
+        ends = segments.stream().map(segment -> {
+            List<Double> coords = new ArrayList<>();
+            Collections.addAll(coords, new Double[]{segment.getEnd().x, segment.getEnd().y, segment.getEnd().z});
+            return coords;
+        }).reduce(new ArrayList<>(), (doubles, doubles2) -> {
+            doubles.addAll(doubles2);
+            return doubles;
+        }).stream().mapToDouble(Double::doubleValue).toArray();
+//-------------------------------------------------------------
+        System.out.println("Count of nodes " + instance.countCells());
+        CLInterface wizard = new CLInterface(instance);
+        List<Vector3d> parallelMagic = wizard.checkIntersection(begins, ends);
+        Bounds bounds = scene.getBounds();
+        maxDimension = Stream.of(bounds.getMax().x, bounds.getMax().y, bounds.getMax().z,
+                bounds.getMin().x, bounds.getMin().y, bounds.getMin().z)
+                .map(Math::abs)
+                .max(Double::compareTo).get();
+        result = parallelMagic;
+        renderer = new GLRenderer(maxDimension, parallelMagic);
+        renderer.init(panel2);
+        panel2.addGLEventListener(renderer);
+        panel2.setAnimator(animator);
+        animator.start();
+
+
+        /***/
+        Long before = System.nanoTime();
+        List<Vector3d> alternative = segments.parallelStream().map(instance::checkIntersection)
+                .filter(Objects::nonNull).collect(Collectors.toList());
+        System.out.println("INTERSECTING ARRAYS " + (System.nanoTime() - before)/1000000);
     }
 
     private List<LineSegment[][]> splitRays(CSG geometry) {
@@ -356,6 +471,8 @@ public class VisualizerCL extends JFrame {
     private JMenu menu2;
     private JMenuItem menuItem2;
     private JMenuItem menuItem3;
+    private JMenuItem menuItem4;
+    private JMenuItem menuItem5;
     private JPanel panel1;
     private GLJPanel panel2;
     // JFormDesigner - End of variables declaration  //GEN-END:variables

@@ -121,20 +121,23 @@ double3 intersect(__private double3 beginPoint,
   return result;
 }
 
-__kernel void check_intersection(__global double* begin,
-                                 __global double* end,
-                                 __private long raysNum,
+__kernel void check_intersection(__private double bounding,
+                                 __private int viewSize,
                                  __constant int* nodes,
                                  __constant double* planes,
                                  __private long cellNum,
                                  __global double* results) {
   int index = get_global_id(0);//get_global_id(0) * get_local_id(0);
-  if (index < raysNum) {
+  if (index < (viewSize * viewSize)) {
+    double step = (bounding / viewSize) * 2;
+    int row = index / viewSize;
+    int pixel = index % viewSize;
+    double pX = -bounding + (row * step), pY = -bounding + (pixel * step);
     double3 result;
     double3 beginPoint;
-    beginPoint = (double3) (begin[index*3], begin[index*3 + 1], begin[index*3 + 2]);
+    beginPoint = (double3) (pX, pY, bounding);
     double3 endPoint;
-    endPoint = (double3) (end[index*3], end[index*3 + 1], end[index*3 + 2]);
+    endPoint = (double3) (pX, pY, -bounding);
     double3 point;
     point = intersect(beginPoint, endPoint, nodes, planes, cellNum - 1);
     if (point.x != NULL) {

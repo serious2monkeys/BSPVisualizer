@@ -36,6 +36,18 @@ public class SolidTreeNode {
         return back;
     }
 
+    public void setFront(SolidTreeNode frontNode) {
+        this.front = frontNode;
+    }
+
+    public void setBack(SolidTreeNode backNode) {
+        this.back = backNode;
+    }
+
+    public void setPlane(Plane plane) {
+        this.plane = plane;
+    }
+
     public Plane getPlane() {
         return plane;
     }
@@ -46,6 +58,10 @@ public class SolidTreeNode {
 
     public boolean isSolid() {
         return solid;
+    }
+
+    public void setSolid(boolean flag) {
+        this.solid = flag;
     }
 
     public boolean isLeaf() {

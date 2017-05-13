@@ -41,8 +41,6 @@ public class CLInterface {
         long planesCount = instance.getPlanesArray().length;
         Pointer<Integer> nodesPtr = allocateInts(nodesCount).order(byteOrder);
         Pointer<Double> planesPtr = allocateDoubles(planesCount).order(byteOrder);
-        Pointer<Double> beginsPtr = allocateDoubles(beginPoints.length).order(byteOrder);
-        Pointer<Double> endsPtr = allocateDoubles(endPoints.length).order(byteOrder);
 
         for (int i = 0; i < nodesCount; i++) {
             nodesPtr.set(i, instance.getNodesArray()[i]);
@@ -51,16 +49,10 @@ public class CLInterface {
             planesPtr.set(i, instance.getPlanesArray()[i]);
         }
 
-        for (int i = 0; i < beginPoints.length; i++) {
-            beginsPtr.set(i, beginPoints[i]);
-            endsPtr.set(i, endPoints[i]);
-        }
         CLBuffer<Integer> nodesArg = context.createIntBuffer(Input, nodesPtr);
         CLBuffer<Double> planesArg = context.createDoubleBuffer(Input, planesPtr);
-        CLBuffer<Double> begins = context.createDoubleBuffer(Input, beginsPtr);
-        CLBuffer<Double> ends = context.createDoubleBuffer(Input, endsPtr);
 
-        CLBuffer<Double> out = context.createDoubleBuffer(Output, allocateDoubles(beginPoints.length).order(byteOrder));
+        CLBuffer<Double> out = context.createDoubleBuffer(Output, allocateDoubles(500 * 500 * 3).order(byteOrder));
 
 
         String source = IOUtils.readText(CLInterface.class.getResource("RayCaster.cl"));
@@ -69,7 +61,7 @@ public class CLInterface {
 
         CLKernel kernel = program.createKernel("check_intersection");
 
-        kernel.setArgs(begins, ends, (long) beginPoints.length / 3, nodesArg, planesArg, instance.countCells(), out);
+        kernel.setArgs(instance.getMaxDimension(), 500, nodesArg, planesArg, instance.countCells(), out);
         String mxBeanName = ManagementFactory.getRuntimeMXBean().getName();
         String pid = mxBeanName.substring(0, mxBeanName.indexOf("@"));
         System.out.println("sudo gdb --tui --pid=" + pid);
@@ -98,6 +90,9 @@ public class CLInterface {
         System.out.println("OpenCL worked: " + (System.nanoTime() - before) / 1000000 + " ms");
         points.size();
         program.release();
+        queue.release();
+        context.release();
+        out.release();
         return points;
     }
 }
